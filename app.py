@@ -23,7 +23,7 @@ RECEIVE_WALLET_ADDRESS = "0xB980b5d55049107C7205B946Fb42B6BD774ba21b"
 RECEIVE_NETWORK_INFO = "USDT / USDC — BNB Smart Chain (BEP20), Polygon or Arbitrum (Check network before sending)"
 
 # ایمیل یا آیدی ارتباطی خودتان را اینجا وارد کنید تا خریدار بداند TxHash را کجا بفرستد
-SUPPORT_CONTACT = "support@yourdomain.com or @YourHandle"
+SUPPORT_CONTACT = "aliamiry13610@gmail.com"
 PRO_PRICE_USD = 9
 
 
