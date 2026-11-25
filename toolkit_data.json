@@ -1,8 +1,6 @@
 {
   "lang": "en",
   "tab": "profit",
-  "is_pro": true,
-  "active_license": "PRO-C21D-EE6D-124C",
   "profit": {
     "buy_price": 60000.0,
     "sell_price": 66000.0,

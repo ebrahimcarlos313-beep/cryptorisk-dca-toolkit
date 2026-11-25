@@ -12,12 +12,16 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "CryptoRiskSecretSessionKey2
 DATA_FILE = Path("toolkit_data.json")
 FREE_DCA_LIMIT = 3
 
-# رمز عبور اختصاصی شما برای ساخت کد لایسنس
+# رمز عبور اختصاصی شما برای ساخت کد لایسنس (ترجیحاً در Render -> Environment با کلید ADMIN_SECRET ست شود)
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "Admin2026#Crypto")
+
+# مسیر مخفی پنل ساخت لایسنس (کاربران عادی آن را در صفحه اصلی نمی‌بینند)
+ADMIN_PATH = os.environ.get("ADMIN_KEY_PATH", "/admin-key-9x7k2")
 
 # آدرس کیف پول دریافت رمزارز خودتان (هرگز Private Key یا Seed وارد نکنید)
 RECEIVE_WALLET_ADDRESS = "0xB980b5d55049107C7205B946Fb42B6BD774ba21b"
-RECEIVE_NETWORK_INFO = "USDT / USDC (Check network before sending)"
+RECEIVE_NETWORK_INFO = "USDT / USDC — Polygon or Arbitrum (Check network before sending)"
+SUPPORT_CONTACT = "Send your TxHash + email/ID to support (or your contact handle) to receive your license key."
 PRO_PRICE_USD = 9
 
 
@@ -73,14 +77,14 @@ TEXTS = {
         "pro_badge_off": "FREE PLAN",
         "deactivate_btn": "Exit Pro",
         "pro_box_title": f"Pro Upgrade (${PRO_PRICE_USD} One-Time)",
-        "pro_box_desc": f"Send ${PRO_PRICE_USD} ({RECEIVE_NETWORK_INFO}) to the wallet below, then enter your received license key.",
+        "pro_box_desc": f"1) Send exact ${PRO_PRICE_USD} ({RECEIVE_NETWORK_INFO}) to the wallet below. 2) {SUPPORT_CONTACT} 3) Enter your license key here to unlock unlimited DCA steps and CSV export.",
         "wallet_label": "Receiving Wallet Address:",
         "pro_placeholder": "Enter license key (e.g. PRO-XXXX-XXXX-XXXX)",
         "pro_activate": "Activate Pro",
         "pro_activated_msg": "Pro plan is active. Unlimited DCA steps and CSV export are unlocked.",
         "pro_invalid_msg": "Invalid license key. Please check your code and try again.",
         "gen_title": "Seller / Admin: Generate Buyer License Key",
-        "gen_placeholder": "Buyer reference / order note",
+        "gen_placeholder": "Buyer reference / email / TxHash note",
         "gen_secret_placeholder": "Admin Password",
         "gen_btn": "Generate Key",
         "gen_err_msg": "Unauthorized: Wrong admin password.",
@@ -131,14 +135,14 @@ TEXTS = {
         "pro_badge_off": "نسخه رایگان",
         "deactivate_btn": "خروج از Pro",
         "pro_box_title": f"ارتقا به نسخه Pro ({PRO_PRICE_USD} دلار یک‌باره)",
-        "pro_box_desc": f"مبلغ {PRO_PRICE_USD} دلار ({RECEIVE_NETWORK_INFO}) را به کیف پول زیر واریز کنید و کد لایسنس دریافت‌شده را وارد نمایید.",
+        "pro_box_desc": f"۱) دقیقاً مبلغ {PRO_PRICE_USD} دلار ({RECEIVE_NETWORK_INFO}) را به کیف پول زیر واریز کنید. ۲) {SUPPORT_CONTACT} ۳) کد لایسنس دریافت‌شده را اینجا وارد کنید تا پله‌های نامحدود DCA و خروجی CSV باز شوند.",
         "wallet_label": "آدرس کیف پول دریافت‌کننده:",
         "pro_placeholder": "کد لایسنس را وارد کنید (مثلاً PRO-XXXX-XXXX-XXXX)",
         "pro_activate": "فعال‌سازی Pro",
         "pro_activated_msg": "نسخه Pro فعال است؛ پله‌های نامحدود و خروجی CSV در دسترس هستند.",
         "pro_invalid_msg": "کد لایسنس معتبر نیست. لطفاً کد را بررسی کرده و دوباره وارد کنید.",
         "gen_title": "بخش فروشنده: ساخت کد لایسنس برای خریدار",
-        "gen_placeholder": "شناسه یا یادداشت سفارش خریدار",
+        "gen_placeholder": "شناسه، ایمیل یا یادداشت تراکنش خریدار",
         "gen_secret_placeholder": "رمز عبور مدیر",
         "gen_btn": "تولید کد لایسنس",
         "gen_err_msg": "خطا: رمز عبور مدیر اشتباه است.",
@@ -211,7 +215,7 @@ PAGE_HTML = """<!DOCTYPE html>
     }
     h1 { font-size: 1.2rem; }
     h2 { font-size: 1rem; margin-bottom: 8px; }
-    .sub { color: #9aa7c7; font-size: 0.86rem; margin-top: 4px; }
+    .sub { color: #9aa7c7; font-size: 0.86rem; margin-top: 4px; line-height: 1.5; }
     .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .btn {
       background: #3b82f6;
@@ -516,6 +520,7 @@ PAGE_HTML = """<!DOCTYPE html>
     </div>
     {% endif %}
 
+    {% if not show_admin %}
     <div class="card">
       <h1>{{ t.pro_box_title }}</h1>
       <div class="sub">{{ t.pro_box_desc }}</div>
@@ -531,21 +536,22 @@ PAGE_HTML = """<!DOCTYPE html>
       {% elif pro_status == 'err' %}
         <div class="msg-err">{{ t.pro_invalid_msg }}</div>
       {% endif %}
-
-      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #27345d;">
-        <h2>{{ t.gen_title }}</h2>
-        <form method="POST" action="{{ url_for('generate_key_route') }}" class="row-inline">
-          <input type="text" name="buyer_ref" placeholder="{{ t.gen_placeholder }}" style="max-width: 240px;" required />
-          <input type="password" name="admin_secret" placeholder="{{ t.gen_secret_placeholder }}" style="max-width: 200px;" required />
-          <button class="btn btn-ghost" type="submit">{{ t.gen_btn }}</button>
-        </form>
-        {% if gen_error %}
-          <div class="msg-err">{{ t.gen_err_msg }}</div>
-        {% elif generated_key %}
-          <div class="msg-ok" dir="ltr">Generated Key: <strong>{{ generated_key }}</strong></div>
-        {% endif %}
-      </div>
     </div>
+    {% else %}
+    <div class="card">
+      <h2>{{ t.gen_title }}</h2>
+      <form method="POST" action="{{ admin_path }}" class="row-inline">
+        <input type="text" name="buyer_ref" placeholder="{{ t.gen_placeholder }}" style="max-width: 260px;" required />
+        <input type="password" name="admin_secret" placeholder="{{ t.gen_secret_placeholder }}" style="max-width: 200px;" required />
+        <button class="btn" type="submit">{{ t.gen_btn }}</button>
+      </form>
+      {% if gen_error %}
+        <div class="msg-err">{{ t.gen_err_msg }}</div>
+      {% elif generated_key %}
+        <div class="msg-ok" dir="ltr">Generated Key: <strong>{{ generated_key }}</strong></div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </body>
 </html>
@@ -666,6 +672,7 @@ def render_page(
     pro_status: str = "",
     generated_key: str = "",
     gen_error: bool = False,
+    show_admin: bool = False,
 ) -> str:
     lang = state["lang"] if state["lang"] in TEXTS else "en"
     return render_template_string(
@@ -681,6 +688,8 @@ def render_page(
         pro_status=pro_status,
         generated_key=generated_key,
         gen_error=gen_error,
+        show_admin=show_admin,
+        admin_path=ADMIN_PATH,
     )
 
 
@@ -808,17 +817,20 @@ def deactivate_pro_route():
     return redirect(url_for("index"))
 
 
-@app.route("/generate-key", methods=["POST"])
-def generate_key_route():
+@app.route(ADMIN_PATH, methods=["GET", "POST"])
+def admin_key_route():
     state = load_state()
+    if request.method == "GET":
+        return render_page(state, show_admin=True)
+
     buyer_ref = (request.form.get("buyer_ref") or "").strip()
     provided_secret = (request.form.get("admin_secret") or "").strip()
 
     if not ADMIN_SECRET or provided_secret != ADMIN_SECRET:
-        return render_page(state, gen_error=True)
+        return render_page(state, gen_error=True, show_admin=True)
 
     generated = generate_license_key(buyer_ref) if buyer_ref else ""
-    return render_page(state, generated_key=generated)
+    return render_page(state, generated_key=generated, show_admin=True)
 
 
 if __name__ == "__main__":
