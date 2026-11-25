@@ -4,17 +4,18 @@ import io
 import json
 import os
 from pathlib import Path
-from flask import Flask, Response, redirect, render_template_string, request, url_for
+from flask import Flask, Response, redirect, render_template_string, request, session, url_for
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "CryptoRiskSecretSessionKey2026#!")
 
 DATA_FILE = Path("toolkit_data.json")
 FREE_DCA_LIMIT = 3
 
-# رمز عبور اختصاصی شما برای ساخت کد لایسنس (می‌توانید این عبارت را به رمز دلخواه خود تغییر دهید)
+# رمز عبور اختصاصی شما برای ساخت کد لایسنس
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "Admin2026#Crypto")
 
-# آدرس کیف پول دریافت رمزارز خودتان را اینجا قرار دهید (هرگز Private Key یا Seed وارد نکنید)
+# آدرس کیف پول دریافت رمزارز خودتان (هرگز Private Key یا Seed وارد نکنید)
 RECEIVE_WALLET_ADDRESS = "0xB980b5d55049107C7205B946Fb42B6BD774ba21b"
 RECEIVE_NETWORK_INFO = "USDT / USDC (Check network before sending)"
 PRO_PRICE_USD = 9
@@ -37,8 +38,6 @@ def is_valid_license(code: str) -> bool:
 DEFAULT_DATA = {
     "lang": "en",
     "tab": "profit",
-    "is_pro": False,
-    "active_license": "",
     "profit": {
         "buy_price": 60000.0,
         "sell_price": 66000.0,
@@ -72,6 +71,7 @@ TEXTS = {
         "tab_risk": "Risk & Sizing",
         "pro_badge_on": "PRO ACTIVE",
         "pro_badge_off": "FREE PLAN",
+        "deactivate_btn": "Exit Pro",
         "pro_box_title": f"Pro Upgrade (${PRO_PRICE_USD} One-Time)",
         "pro_box_desc": f"Send ${PRO_PRICE_USD} ({RECEIVE_NETWORK_INFO}) to the wallet below, then enter your received license key.",
         "wallet_label": "Receiving Wallet Address:",
@@ -129,6 +129,7 @@ TEXTS = {
         "tab_risk": "مدیریت ریسک",
         "pro_badge_on": "نسخه PRO فعال",
         "pro_badge_off": "نسخه رایگان",
+        "deactivate_btn": "خروج از Pro",
         "pro_box_title": f"ارتقا به نسخه Pro ({PRO_PRICE_USD} دلار یک‌باره)",
         "pro_box_desc": f"مبلغ {PRO_PRICE_USD} دلار ({RECEIVE_NETWORK_INFO}) را به کیف پول زیر واریز کنید و کد لایسنس دریافت‌شده را وارد نمایید.",
         "wallet_label": "آدرس کیف پول دریافت‌کننده:",
@@ -320,6 +321,11 @@ PAGE_HTML = """<!DOCTYPE html>
           <span class="badge {{ 'badge-on' if data.is_pro else 'badge-off' }}">
             {{ t.pro_badge_on if data.is_pro else t.pro_badge_off }}
           </span>
+          {% if data.is_pro %}
+          <form method="POST" action="{{ url_for('deactivate_pro_route') }}">
+            <button class="btn btn-ghost" type="submit">{{ t.deactivate_btn }}</button>
+          </form>
+          {% endif %}
           <form method="POST" action="{{ url_for('toggle_lang') }}">
             <button class="btn btn-ghost" type="submit">{{ t.lang_btn }}</button>
           </form>
@@ -556,8 +562,6 @@ def load_state() -> dict:
                     state["lang"] = saved["lang"]
                 if saved.get("tab") in ("profit", "dca", "risk"):
                     state["tab"] = saved["tab"]
-                state["is_pro"] = bool(saved.get("is_pro", False))
-                state["active_license"] = str(saved.get("active_license", ""))
                 if isinstance(saved.get("profit"), dict):
                     state["profit"].update(saved["profit"])
                 if isinstance(saved.get("dca"), dict):
@@ -568,11 +572,20 @@ def load_state() -> dict:
                     state["risk"].update(saved["risk"])
         except Exception:
             pass
+    state["is_pro"] = bool(session.get("is_pro", False))
+    state["active_license"] = str(session.get("active_license", ""))
     return state
 
 
 def save_state(state: dict) -> None:
-    DATA_FILE.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+    to_save = {
+        "lang": state["lang"],
+        "tab": state["tab"],
+        "profit": state["profit"],
+        "dca": state["dca"],
+        "risk": state["risk"],
+    }
+    DATA_FILE.write_text(json.dumps(to_save, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def compute_profit(p: dict) -> dict:
@@ -780,14 +793,19 @@ def calc_risk_route():
 
 @app.route("/activate-pro", methods=["POST"])
 def activate_pro_route():
-    state = load_state()
     code = (request.form.get("license_code") or "").strip().upper()
     if is_valid_license(code):
-        state["is_pro"] = True
-        state["active_license"] = code
-        save_state(state)
-        return render_page(state, pro_status="ok")
-    return render_page(state, pro_status="err")
+        session["is_pro"] = True
+        session["active_license"] = code
+        return render_page(load_state(), pro_status="ok")
+    return render_page(load_state(), pro_status="err")
+
+
+@app.route("/deactivate-pro", methods=["POST"])
+def deactivate_pro_route():
+    session.pop("is_pro", None)
+    session.pop("active_license", None)
+    return redirect(url_for("index"))
 
 
 @app.route("/generate-key", methods=["POST"])
