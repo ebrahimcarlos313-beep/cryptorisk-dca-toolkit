@@ -21,7 +21,9 @@ ADMIN_PATH = os.environ.get("ADMIN_KEY_PATH", "/admin-key-9x7k2")
 # آدرس کیف پول دریافت رمزارز خودتان (هرگز Private Key یا Seed وارد نکنید)
 RECEIVE_WALLET_ADDRESS = "0xB980b5d55049107C7205B946Fb42B6BD774ba21b"
 RECEIVE_NETWORK_INFO = "USDT / USDC — BNB Smart Chain (BEP20), Polygon or Arbitrum (Check network before sending)"
-SUPPORT_CONTACT = "Send your TxHash + email/ID to receive your license key."
+
+# ایمیل یا آیدی ارتباطی خودتان را اینجا وارد کنید تا خریدار بداند TxHash را کجا بفرستد
+SUPPORT_CONTACT = "support@yourdomain.com or @YourHandle"
 PRO_PRICE_USD = 9
 
 
@@ -77,7 +79,7 @@ TEXTS = {
         "pro_badge_off": "FREE PLAN",
         "deactivate_btn": "Exit Pro",
         "pro_box_title": f"Pro Upgrade (${PRO_PRICE_USD} One-Time)",
-        "pro_box_desc": f"1) Send exact ${PRO_PRICE_USD} ({RECEIVE_NETWORK_INFO}) to the wallet below. 2) {SUPPORT_CONTACT} 3) Enter your license key here to unlock unlimited DCA steps and CSV export.",
+        "pro_box_desc": f"1) Send exact ${PRO_PRICE_USD} ({RECEIVE_NETWORK_INFO}) to the wallet below. 2) Send your TxHash + email/ID to {SUPPORT_CONTACT} to receive your license key. 3) Enter your license key here to unlock unlimited DCA steps and CSV export.",
         "wallet_label": "Receiving Wallet Address:",
         "pro_placeholder": "Enter license key (e.g. PRO-XXXX-XXXX-XXXX)",
         "pro_activate": "Activate Pro",
@@ -135,7 +137,7 @@ TEXTS = {
         "pro_badge_off": "نسخه رایگان",
         "deactivate_btn": "خروج از Pro",
         "pro_box_title": f"ارتقا به نسخه Pro ({PRO_PRICE_USD} دلار یک‌باره)",
-        "pro_box_desc": f"۱) دقیقاً مبلغ {PRO_PRICE_USD} دلار ({RECEIVE_NETWORK_INFO}) را به کیف پول زیر واریز کنید. ۲) {SUPPORT_CONTACT} ۳) کد لایسنس دریافت‌شده را اینجا وارد کنید تا پله‌های نامحدود DCA و خروجی CSV باز شوند.",
+        "pro_box_desc": f"۱) دقیقاً مبلغ {PRO_PRICE_USD} دلار ({RECEIVE_NETWORK_INFO}) را به کیف پول زیر واریز کنید. ۲) شناسه تراکنش (TxHash) و ایمیل/شناسه خود را به {SUPPORT_CONTACT} بفرستید تا کد لایسنس دریافت کنید. ۳) کد لایسنس دریافت‌شده را اینجا وارد کنید تا پله‌های نامحدود DCA و خروجی CSV باز شوند.",
         "wallet_label": "آدرس کیف پول دریافت‌کننده:",
         "pro_placeholder": "کد لایسنس را وارد کنید (مثلاً PRO-XXXX-XXXX-XXXX)",
         "pro_activate": "فعال‌سازی Pro",
