@@ -2,6 +2,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 from flask import Flask, Response, redirect, render_template_string, request, url_for
 
@@ -9,7 +10,9 @@ app = Flask(__name__)
 
 DATA_FILE = Path("toolkit_data.json")
 FREE_DCA_LIMIT = 3
-DEMO_PRO_CODE = "PRO2026"
+
+# رمز عبور اختصاصی شما برای ساخت کد لایسنس (می‌توانید این عبارت را به رمز دلخواه خود تغییر دهید)
+ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "Admin2026#Crypto")
 
 # آدرس کیف پول دریافت رمزارز خودتان را اینجا قرار دهید (هرگز Private Key یا Seed وارد نکنید)
 RECEIVE_WALLET_ADDRESS = "0xB980b5d55049107C7205B946Fb42B6BD774ba21b"
@@ -25,8 +28,8 @@ def generate_license_key(buyer_email_or_id: str) -> str:
 
 def is_valid_license(code: str) -> bool:
     normalized = code.strip().upper()
-    if normalized == DEMO_PRO_CODE:
-        return True
+    if not normalized:
+        return False
     parts = normalized.split("-")
     return len(parts) == 4 and parts[0] == "PRO" and all(len(p) == 4 and p.isalnum() for p in parts[1:])
 
@@ -70,15 +73,17 @@ TEXTS = {
         "pro_badge_on": "PRO ACTIVE",
         "pro_badge_off": "FREE PLAN",
         "pro_box_title": f"Pro Upgrade (${PRO_PRICE_USD} One-Time)",
-        "pro_box_desc": f"Send ${PRO_PRICE_USD} ({RECEIVE_NETWORK_INFO}) to wallet below, then enter your license key (Demo test code: {DEMO_PRO_CODE}).",
+        "pro_box_desc": f"Send ${PRO_PRICE_USD} ({RECEIVE_NETWORK_INFO}) to the wallet below, then enter your received license key.",
         "wallet_label": "Receiving Wallet Address:",
-        "pro_placeholder": f"Enter license key (e.g. {DEMO_PRO_CODE})",
+        "pro_placeholder": "Enter license key (e.g. PRO-XXXX-XXXX-XXXX)",
         "pro_activate": "Activate Pro",
         "pro_activated_msg": "Pro plan is active. Unlimited DCA steps and CSV export are unlocked.",
-        "pro_invalid_msg": f"Invalid license key. Use {DEMO_PRO_CODE} for demo testing.",
+        "pro_invalid_msg": "Invalid license key. Please check your code and try again.",
         "gen_title": "Seller / Admin: Generate Buyer License Key",
         "gen_placeholder": "Buyer reference / order note",
+        "gen_secret_placeholder": "Admin Password",
         "gen_btn": "Generate Key",
+        "gen_err_msg": "Unauthorized: Wrong admin password.",
         "buy_price": "Buy Price ($)",
         "sell_price": "Sell / Target Price ($)",
         "invest": "Investment Amount ($)",
@@ -125,15 +130,17 @@ TEXTS = {
         "pro_badge_on": "نسخه PRO فعال",
         "pro_badge_off": "نسخه رایگان",
         "pro_box_title": f"ارتقا به نسخه Pro ({PRO_PRICE_USD} دلار یک‌باره)",
-        "pro_box_desc": f"مبلغ {PRO_PRICE_USD} دلار ({RECEIVE_NETWORK_INFO}) را به کیف پول زیر واریز کنید و کد لایسنس را وارد نمایید (کد تست: {DEMO_PRO_CODE}).",
+        "pro_box_desc": f"مبلغ {PRO_PRICE_USD} دلار ({RECEIVE_NETWORK_INFO}) را به کیف پول زیر واریز کنید و کد لایسنس دریافت‌شده را وارد نمایید.",
         "wallet_label": "آدرس کیف پول دریافت‌کننده:",
-        "pro_placeholder": f"کد لایسنس را وارد کنید (مثلاً {DEMO_PRO_CODE})",
+        "pro_placeholder": "کد لایسنس را وارد کنید (مثلاً PRO-XXXX-XXXX-XXXX)",
         "pro_activate": "فعال‌سازی Pro",
         "pro_activated_msg": "نسخه Pro فعال است؛ پله‌های نامحدود و خروجی CSV در دسترس هستند.",
-        "pro_invalid_msg": f"کد لایسنس معتبر نیست. برای تست می‌توانید از {DEMO_PRO_CODE} استفاده کنید.",
+        "pro_invalid_msg": "کد لایسنس معتبر نیست. لطفاً کد را بررسی کرده و دوباره وارد کنید.",
         "gen_title": "بخش فروشنده: ساخت کد لایسنس برای خریدار",
         "gen_placeholder": "شناسه یا یادداشت سفارش خریدار",
+        "gen_secret_placeholder": "رمز عبور مدیر",
         "gen_btn": "تولید کد لایسنس",
+        "gen_err_msg": "خطا: رمز عبور مدیر اشتباه است.",
         "buy_price": "قیمت خرید ($)",
         "sell_price": "قیمت فروش / هدف ($)",
         "invest": "مبلغ سرمایه‌گذاری ($)",
@@ -510,7 +517,7 @@ PAGE_HTML = """<!DOCTYPE html>
         <strong>{{ t.wallet_label }}</strong> <span dir="ltr">{{ wallet_address }}</span>
       </div>
       <form method="POST" action="{{ url_for('activate_pro_route') }}" class="row-inline">
-        <input type="text" name="license_code" placeholder="{{ t.pro_placeholder }}" style="max-width: 300px;" />
+        <input type="text" name="license_code" placeholder="{{ t.pro_placeholder }}" style="max-width: 320px;" required />
         <button class="btn" type="submit">{{ t.pro_activate }}</button>
       </form>
       {% if pro_status == 'ok' %}
@@ -522,10 +529,13 @@ PAGE_HTML = """<!DOCTYPE html>
       <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #27345d;">
         <h2>{{ t.gen_title }}</h2>
         <form method="POST" action="{{ url_for('generate_key_route') }}" class="row-inline">
-          <input type="text" name="buyer_ref" placeholder="{{ t.gen_placeholder }}" style="max-width: 280px;" required />
+          <input type="text" name="buyer_ref" placeholder="{{ t.gen_placeholder }}" style="max-width: 240px;" required />
+          <input type="password" name="admin_secret" placeholder="{{ t.gen_secret_placeholder }}" style="max-width: 200px;" required />
           <button class="btn btn-ghost" type="submit">{{ t.gen_btn }}</button>
         </form>
-        {% if generated_key %}
+        {% if gen_error %}
+          <div class="msg-err">{{ t.gen_err_msg }}</div>
+        {% elif generated_key %}
           <div class="msg-ok" dir="ltr">Generated Key: <strong>{{ generated_key }}</strong></div>
         {% endif %}
       </div>
@@ -637,7 +647,13 @@ def compute_risk(r: dict) -> dict:
     }
 
 
-def render_page(state: dict, dca_notice: str = "", pro_status: str = "", generated_key: str = "") -> str:
+def render_page(
+    state: dict,
+    dca_notice: str = "",
+    pro_status: str = "",
+    generated_key: str = "",
+    gen_error: bool = False,
+) -> str:
     lang = state["lang"] if state["lang"] in TEXTS else "en"
     return render_template_string(
         PAGE_HTML,
@@ -651,6 +667,7 @@ def render_page(state: dict, dca_notice: str = "", pro_status: str = "", generat
         dca_notice=dca_notice,
         pro_status=pro_status,
         generated_key=generated_key,
+        gen_error=gen_error,
     )
 
 
@@ -777,6 +794,11 @@ def activate_pro_route():
 def generate_key_route():
     state = load_state()
     buyer_ref = (request.form.get("buyer_ref") or "").strip()
+    provided_secret = (request.form.get("admin_secret") or "").strip()
+
+    if not ADMIN_SECRET or provided_secret != ADMIN_SECRET:
+        return render_page(state, gen_error=True)
+
     generated = generate_license_key(buyer_ref) if buyer_ref else ""
     return render_page(state, generated_key=generated)
 
