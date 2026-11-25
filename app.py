@@ -20,8 +20,8 @@ ADMIN_PATH = os.environ.get("ADMIN_KEY_PATH", "/admin-key-9x7k2")
 
 # آدرس کیف پول دریافت رمزارز خودتان (هرگز Private Key یا Seed وارد نکنید)
 RECEIVE_WALLET_ADDRESS = "0xB980b5d55049107C7205B946Fb42B6BD774ba21b"
-RECEIVE_NETWORK_INFO = "USDT / USDC — Polygon or Arbitrum (Check network before sending)"
-SUPPORT_CONTACT = "Send your TxHash + email/ID to support (or your contact handle) to receive your license key."
+RECEIVE_NETWORK_INFO = "USDT / USDC — BNB Smart Chain (BEP20), Polygon or Arbitrum (Check network before sending)"
+SUPPORT_CONTACT = "Send your TxHash + email/ID to receive your license key."
 PRO_PRICE_USD = 9
 
 
