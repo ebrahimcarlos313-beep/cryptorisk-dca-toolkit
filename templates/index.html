@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CryptoRisk & DCA Toolkit (Flask)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #131b33;
+      --panel-2: #182240;
+      --text: #eef2ff;
+      --muted: #9aa7c7;
+      --border: #27345d;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(180deg, #090d1a 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 40px;
+    }
+
+    .container { max-width: 920px; margin: 0 auto; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    h1 { font-size: 1.25rem; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 16px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.85rem; color: var(--muted); }
+
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .btn {
+      margin-top: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--accent-hover); }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .stat .lbl { font-size: 0.78rem; color: var(--muted); }
+    .stat .val { font-size: 1.1rem; font-weight: 700; margin-top: 4px; direction: ltr; text-align: left; }
+    .pos { color: var(--success); }
+    .neg { color: var(--danger); }
+
+    @media (max-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>CryptoRisk & DCA Toolkit</h1>
+      <div class="sub">Running on Flask local server — Net Profit & Fee Calculator</div>
+
+      <form method="POST">
+        <div class="grid-2">
+          <div class="field">
+            <label for="buy_price">Buy Price ($)</label>
+            <input type="number" step="any" min="0.01" id="buy_price" name="buy_price" value="{{ form.buy_price }}" required />
+          </div>
+          <div class="field">
+            <label for="sell_price">Sell / Target Price ($)</label>
+            <input type="number" step="any" min="0" id="sell_price" name="sell_price" value="{{ form.sell_price }}" required />
+          </div>
+          <div class="field">
+            <label for="invest">Investment Amount ($)</label>
+            <input type="number" step="any" min="0.01" id="invest" name="invest" value="{{ form.invest }}" required />
+          </div>
+          <div class="field">
+            <label for="fee_pct">Fee per Side (%)</label>
+            <input type="number" step="any" min="0" id="fee_pct" name="fee_pct" value="{{ form.fee_pct }}" required />
+          </div>
+        </div>
+        <button class="btn" type="submit">Calculate</button>
+      </form>
+
+      <div class="results">
+        <div class="stat">
+          <div class="lbl">Net Profit / Loss ($)</div>
+          <div class="val {{ 'pos' if res.net_profit > 0 else ('neg' if res.net_profit < 0 else '') }}">${{ "{:,.2f}".format(res.net_profit) }}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Net Return (%)</div>
+          <div class="val {{ 'pos' if res.roi > 0 else ('neg' if res.roi < 0 else '') }}">{{ "{:.2f}".format(res.roi) }}%</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Total Fees ($)</div>
+          <div class="val">${{ "{:,.2f}".format(res.total_fees) }}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Break-Even Price ($)</div>
+          <div class="val">${{ "{:,.2f}".format(res.break_even) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
